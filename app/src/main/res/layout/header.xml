@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="@dimen/listviewitem_height"
+    android:orientation="horizontal"
+    android:paddingLeft="@dimen/listviewitem_horizontal_margin"
+    android:paddingRight="@dimen/listviewitem_horizontal_margin">
+
+    <TextView
+        android:id="@android:id/text1"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginLeft="@dimen/listviewitem_horizontal_margin"
+        android:gravity="center_vertical"
+        android:textAlignment="gravity" />
+</RelativeLayout>
