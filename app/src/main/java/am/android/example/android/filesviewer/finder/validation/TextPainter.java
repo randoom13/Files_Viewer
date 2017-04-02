@@ -8,9 +8,6 @@ import android.text.style.BackgroundColorSpan;
 
 import java.util.List;
 
-/**
- * Created by akhlivnyuk on 2/16/2017.
- */
 public class TextPainter {
     private final String[] mFilters;
 
