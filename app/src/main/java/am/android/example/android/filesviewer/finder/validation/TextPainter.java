@@ -5,7 +5,6 @@ import android.text.SpannableString;
 import android.text.Spanned;
 import android.text.TextUtils;
 import android.text.style.BackgroundColorSpan;
-
 import java.util.List;
 
 public class TextPainter {
