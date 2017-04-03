@@ -11,6 +11,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.BaseAdapter;
+import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ProgressBar;
 import android.widget.TextView;
@@ -105,6 +106,13 @@ public class FinderListFragment extends ListFragment
         mProgressBar = (ProgressBar) rootView.findViewById(R.id.progressBar);
         mSearchFilter = (EditText) rootView.findViewById(R.id.search_filter);
         mSearchFilter.setOnEditorActionListener(this);
+        Button searchButton = (Button)rootView.findViewById(R.id.search_button);
+        searchButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                launchSearch();
+            }
+        });
         mAdapter = new FilesViewerAdapter();
         setListAdapter(mAdapter);
         EventBus.getDefault().register(this);
@@ -125,14 +133,17 @@ public class FinderListFragment extends ListFragment
     @Override
     public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
         if (event == null || event.getAction() == KeyEvent.ACTION_UP) {
-            InputMethodManager inputMethodManager = (InputMethodManager)
-                    getActivity().getSystemService(Activity.INPUT_METHOD_SERVICE);
-            inputMethodManager.hideSoftInputFromWindow(v.getWindowToken(), 0);
-            mFilesFinder.reset(mSearchFilter.getText().toString());
+            launchSearch();
         }
         return true;
     }
 
+    private void launchSearch(){
+        InputMethodManager inputMethodManager = (InputMethodManager)
+                getActivity().getSystemService(Activity.INPUT_METHOD_SERVICE);
+        inputMethodManager.hideSoftInputFromWindow(mSearchFilter.getWindowToken(), 0);
+        mFilesFinder.reset(mSearchFilter.getText().toString());
+    }
     @SuppressWarnings("unused")
     public void onEventMainThread(SearchResultEvent event) {
         switch (event.getStatus()) {
