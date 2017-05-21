@@ -19,6 +19,7 @@ import android.widget.Toast;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -26,59 +27,89 @@ import java.util.Map;
 import am.android.example.android.filesviewer.finder.FilesFinder;
 import am.android.example.android.filesviewer.finder.SearchResultEvent;
 import am.android.example.android.filesviewer.finder.SearchedItemInfo;
+import am.android.example.android.filesviewer.finder.SearchedRootInfo;
 import am.android.example.android.filesviewer.finder.validation.FilesValidator;
 import am.android.example.android.filesviewer.finder.validation.TextColorProvider;
 import de.greenrobot.event.EventBus;
 
-/**
- * Created by alexander on 14.02.17.
- */
 public class FinderListFragment extends ListFragment
         implements TextView.OnEditorActionListener {
     private static final String sActualFilter = "actual filter";
     private static final String sTypedFilter = "typed filter";
-    private static final int[] RowTitles = {R.string.root, R.string.internal, R.string.external, R.string.pub};
+    private static final int[] sRowTitles = {R.string.root, R.string.internal, R.string.external, R.string.pub};
+
+    private final Map<File, Integer> mRootsMap = new HashMap<File, Integer>();
     private EditText mSearchFilter = null;
     private FilesFinder mFilesFinder = null;
     private ProgressBar mProgressBar = null;
     private FilesViewerAdapter mAdapter;
-    private Map<File, List<SearchedItemInfo>> _fileList = new HashMap<File, List<SearchedItemInfo>>();
-    private String mActualFilter;
+    private List<SearchedRootInfo> mRootInfoList = new ArrayList<SearchedRootInfo>();
     private String mTypedFilter;
+    private String mActualFilter;
 
+    //region private methods
     private static String getSavedString(Bundle savedInstanceState, String key) {
         return savedInstanceState == null ? "" :
                 savedInstanceState.getString(key, "");
     }
 
-    private File[] getRoots() {
+
+    private void initializeRoots() {
         int rootsCount =
                 Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT ? 3 : 4;
-        File[] result = new File[rootsCount];
-        result[0] = Environment.getRootDirectory();
-        result[1] = this.getActivity().getFilesDir();
-        result[2] = this.getActivity().getExternalFilesDir(null);
+        List<File> roots = new ArrayList<File>();
+        roots.add(Environment.getRootDirectory());
+        roots.add(this.getActivity().getFilesDir());
+        roots.add(this.getActivity().getExternalFilesDir(null));
         if (rootsCount > 3)
-            result[3] = Environment.getExternalStorageDirectory();
-        return result;
-    }
-
-    private void clearFilesList() {
-        for (Map.Entry<File, List<SearchedItemInfo>> list : _fileList.entrySet()) {
-            list.getValue().clear();
+            roots.add(Environment.getExternalStorageDirectory());
+        for (int index = 0; index < roots.size(); index++) {
+            File root = roots.get(index);
+            if (root != null)
+                mRootsMap.put(root, sRowTitles[index]);
         }
     }
 
-    private void addFileList(SearchResultEvent event) {
-        for (Map.Entry<File, List<SearchedItemInfo>> sequence : event.getValues().entrySet()) {
-            File root = sequence.getKey();
-            if (!_fileList.containsKey(root))
-                _fileList.put(root, new ArrayList<SearchedItemInfo>());
+    private int getRootInfoListSize() {
+        int size = 0;
+        for (SearchedRootInfo rootInfo : mRootInfoList) {
+            size += rootInfo.size();
+        }
+        return size;
+    }
 
-            _fileList.get(root).addAll(sequence.getValue());
+    private void clearRootInfoList() {
+        for (SearchedRootInfo rootInfo : mRootInfoList) {
+            rootInfo.clear();
         }
     }
 
+    private void initializeRootInfoList() {
+        for (File root : mRootsMap.keySet()) {
+            mRootInfoList.add(new SearchedRootInfo(root));
+        }
+    }
+
+    private void addToRootInfoList(Collection<SearchedRootInfo> newRootInfoList) {
+        for (SearchedRootInfo newRootInfo : newRootInfoList) {
+            for (SearchedRootInfo rootInfo : mRootInfoList) {
+                if (rootInfo.isSameRoot(newRootInfo)) {
+                    rootInfo.addAllFrom(newRootInfo);
+                    break;
+                }
+            }
+        }
+    }
+
+    private String getHeaderTitle(SearchedRootInfo rootInfo) {
+        int titleIdResource = mRootsMap.get(rootInfo.getRoot());
+        return String.format(getString(R.string.header_format),
+                getString(titleIdResource), rootInfo.size());
+    }
+
+    //endregion private methods
+
+    //region public methods
     @Override
     public void onResume() {
         super.onResume();
@@ -98,6 +129,18 @@ public class FinderListFragment extends ListFragment
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setRetainInstance(true);
+        mAdapter = new FilesViewerAdapter();
+        initializeRoots();
+        initializeRootInfoList();
+        final int paintedBackgroundColor = getResources().getColor(R.color.paintedBackground);
+        mFilesFinder = new FilesFinder(mRootsMap.keySet(), new FilesValidator(),
+                new TextColorProvider() {
+                    @Override
+                    public int getBackgroundColor(String paintingString, String filter) {
+                        return paintedBackgroundColor;
+                    }
+                });
+        EventBus.getDefault().register(this);
     }
 
     @Override
@@ -106,25 +149,14 @@ public class FinderListFragment extends ListFragment
         mProgressBar = (ProgressBar) rootView.findViewById(R.id.progressBar);
         mSearchFilter = (EditText) rootView.findViewById(R.id.search_filter);
         mSearchFilter.setOnEditorActionListener(this);
-        Button searchButton = (Button)rootView.findViewById(R.id.search_button);
+        Button searchButton = (Button) rootView.findViewById(R.id.search_button);
         searchButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 launchSearch();
             }
         });
-        mAdapter = new FilesViewerAdapter();
         setListAdapter(mAdapter);
-        EventBus.getDefault().register(this);
-        File[] roots = getRoots();
-        final int paintedBackground = getResources().getColor(R.color.paintedBackground);
-        mFilesFinder = new FilesFinder(roots, new FilesValidator(),
-                new TextColorProvider() {
-                    @Override
-                    public int getBackgroundColor(String paintingString, String filter) {
-                        return paintedBackground;
-                    }
-                });
         mTypedFilter = getSavedString(savedInstanceState, sTypedFilter);
         mActualFilter = getSavedString(savedInstanceState, sActualFilter);
         return rootView;
@@ -138,94 +170,51 @@ public class FinderListFragment extends ListFragment
         return true;
     }
 
-    private void launchSearch(){
+
+    private void launchSearch() {
         InputMethodManager inputMethodManager = (InputMethodManager)
                 getActivity().getSystemService(Activity.INPUT_METHOD_SERVICE);
         inputMethodManager.hideSoftInputFromWindow(mSearchFilter.getWindowToken(), 0);
         mFilesFinder.reset(mSearchFilter.getText().toString());
     }
+
     @SuppressWarnings("unused")
     public void onEventMainThread(SearchResultEvent event) {
         switch (event.getStatus()) {
-            case BEGINNING:
-                clearFilesList();
+            case PENDING:
+                clearRootInfoList();
                 mAdapter.notifyDataSetChanged();
                 break;
-            case COMPLETED:
+
+            case FINISHED:
                 if (mProgressBar != null)
                     mProgressBar.setVisibility(View.INVISIBLE);
                 Toast toast = Toast.makeText(this.getActivity(),
-                        "Search Completed for "
-                                + event.getSearchFilter() + " :" + mAdapter.getCount() + " !", Toast.LENGTH_SHORT);
+                        R.string.search_completed, Toast.LENGTH_SHORT);
                 toast.show();
                 break;
+
             case RUNNING:
                 if (mProgressBar != null && mProgressBar.getVisibility() != View.VISIBLE) {
                     mProgressBar.setVisibility(View.VISIBLE);
                 }
-                addFileList(event);
+                addToRootInfoList(event.getSearchedRootInfoList());
                 mAdapter.notifyDataSetChanged();
                 break;
         }
     }
 
+    //endregion public methods
 
     private class FilesViewerAdapter extends BaseAdapter {
         private View getHeaderView(int position, View convertView, ViewGroup parent) {
             View row = convertView;
             if (row == null)
                 row = getActivity().getLayoutInflater().inflate(R.layout.header, parent, false);
-
-            Integer batchIndex = (Integer) getItem(position);
+            SearchedRootInfo rootInfo = (SearchedRootInfo) getItem(position);
             TextView textView = (TextView) row.findViewById(android.R.id.text1);
-            textView.setText(FinderListFragment.this.getString(RowTitles[batchIndex]));
+            textView.setText(getHeaderTitle(rootInfo));
             return row;
-        }
-
-        @Override
-        public long getItemId(int position) {
-            return position;
-        }
-
-        @Override
-        public int getCount() {
-            int count = _fileList.keySet().size();
-            for (Map.Entry<File, List<SearchedItemInfo>> sequence : _fileList.entrySet()) {
-                count += sequence.getValue().size();
-            }
-            return count;
-        }
-
-        @Override
-        public Object getItem(int position) {
-            int offset = position;
-            int batchIndex = 0;
-            for (Map.Entry<File, List<SearchedItemInfo>> files : _fileList.entrySet()) {
-                if (offset == 0)
-                    return Integer.valueOf(batchIndex);
-
-                offset--;
-
-                int size = files.getValue().size();
-                if (size > offset)
-                    return files.getValue().get(offset);
-
-                offset -= size;
-                batchIndex++;
-            }
-            throw new IllegalArgumentException("Invalid position: " + position);
-        }
-
-        @Override
-        public int getViewTypeCount() {
-            return 2;
-        }
-
-        @Override
-        public int getItemViewType(int position) {
-            if (getItem(position) instanceof Integer)
-                return 0;
-            return 1;
         }
 
         @Override
@@ -244,12 +233,52 @@ public class FinderListFragment extends ListFragment
                 row.setTag(holder);
             }
 
-            SearchedItemInfo searchedItemInfo = (SearchedItemInfo) getItem(position);
-            int iconResourceId = searchedItemInfo.getIsDir() ? android.R.drawable.arrow_down_float :
+            SearchedItemInfo itemInfo = (SearchedItemInfo) getItem(position);
+            int iconResourceId = itemInfo.getIsDir() ? android.R.drawable.arrow_down_float :
                     android.R.drawable.star_on;
             holder.getIcon().setImageResource(iconResourceId);
-            holder.getText().setText(searchedItemInfo.getText());
+            holder.getText().setText(itemInfo.getText());
             return row;
+        }
+
+        @Override
+        public long getItemId(int position) {
+            return position;
+        }
+
+        @Override
+        public int getCount() {
+            return mRootInfoList.size() + getRootInfoListSize();
+        }
+
+        @Override
+        public Object getItem(int position) {
+            int offset = position;
+            for (SearchedRootInfo rootInfo : mRootInfoList) {
+                if (offset == 0)
+                    return rootInfo;
+
+                offset--;
+
+                int size = rootInfo.size();
+                if (size > offset)
+                    return rootInfo.get(offset);
+
+                offset -= size;
+            }
+            throw new IllegalArgumentException("Invalid position: " + position);
+        }
+
+        @Override
+        public int getViewTypeCount() {
+            return 2;
+        }
+
+        @Override
+        public int getItemViewType(int position) {
+            if (getItem(position) instanceof SearchedRootInfo)
+                return 0;
+            return 1;
         }
     }
 }

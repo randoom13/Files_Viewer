@@ -1,5 +1,7 @@
 package am.android.example.android.filesviewer.finder.validation;
 
+import android.text.TextUtils;
+
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
@@ -8,20 +10,20 @@ public class FilesValidator implements Validatable<File, TextPainter> {
     private final static String sOrSplitter = ";";
 
     public TextPainter isValid(File file, String filter) {
-        if (filter == null || filter.length() == 0)
+        if (TextUtils.isEmpty(filter))
             return new TextPainter();
 
         String absolutePath = file.getAbsolutePath();
-        List<String> usedfilters = new ArrayList<String>();
-        for (String cuttedFilter : filter.split(sOrSplitter)) {
-            if (cuttedFilter.length() > 0 && !usedfilters.contains(cuttedFilter)
-                    && absolutePath.contains(cuttedFilter)) {
-                usedfilters.add(cuttedFilter);
+        List<String> filters = new ArrayList<String>();
+        for (String splittedFilter : filter.split(sOrSplitter)) {
+            if (!splittedFilter.isEmpty() && !filters.contains(splittedFilter)
+                    && absolutePath.contains(splittedFilter)) {
+                filters.add(splittedFilter);
             }
         }
 
-        if (usedfilters.size() > 0)
-            return new TextPainter(usedfilters);
+        if (!filters.isEmpty())
+            return new TextPainter(filters);
         else return null;
     }
 }

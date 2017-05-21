@@ -4,57 +4,47 @@ import android.os.AsyncTask;
 import android.os.SystemClock;
 
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.Collection;
 import java.util.List;
-import java.util.Map;
 
-abstract class SmartAsyncTask<Params, ProgressK, ProgressV, Result>
-        extends AsyncTask<Params, Void, Result> {
+abstract class SmartAsyncTask<Params, Progress, Result>
+        extends AsyncTask<Params, Progress, Result> {
 
-    private int mMaxItemsCount;
+    protected final List<Progress> mValues = new ArrayList<Progress>();
+    private int mMaxItemsSize;
     private int mMaxDelay;
     private long mStartTime = 0l;
-    private Map<ProgressK, List<ProgressV>> mValues = new HashMap<ProgressK, List<ProgressV>>();
 
     public SmartAsyncTask() {
-        setMaxDelay(1000);
-        setMaxItemsCount(100);
+        setMaxDelay(100);
+        setMaxItemsSize(100);
     }
 
-    public int getMaxItemsCount() {
-        return mMaxItemsCount;
+    public int getMaxItemsSize() {
+        return mMaxItemsSize;
     }
 
-    public void setMaxItemsCount(int maxItemsCount) {
-        this.mMaxItemsCount = maxItemsCount;
+    public void setMaxItemsSize(int maxItemsSize) {
+        this.mMaxItemsSize = maxItemsSize;
     }
 
     public int getMaxDelay() {
         return mMaxDelay;
     }
 
-    public void setMaxDelay(int mMaxDelay) {
-        this.mMaxDelay = mMaxDelay;
+    public void setMaxDelay(int ms) {
+        this.mMaxDelay = ms;
     }
 
-    private int ItemsCount() {
-        int length = 0;
-        for (List<ProgressV> items : mValues.values()) {
-            length += items.size();
-        }
-        return length;
-    }
+    abstract protected int ValuesSize();
 
-    protected void sentProgressUpdate(Boolean force, ProgressK k, ProgressV v) {
-        if (k != null && v != null) {
-            if (!mValues.containsKey(k))
-                mValues.put(k, new ArrayList<ProgressV>());
+    abstract protected void addValue(Progress value);
 
-            mValues.get(k).add(v);
-        }
-
-        boolean isSent = force || ItemsCount() >= getMaxItemsCount()
-                || (SystemClock.elapsedRealtime() - mStartTime >= getMaxDelay());
+    protected void sentProgressUpdate(Boolean force, Progress value) {
+        addValue(value);
+        boolean isSent = force
+                || (SystemClock.elapsedRealtime() - mStartTime) >= getMaxDelay()
+                || ValuesSize() >= getMaxItemsSize();
 
         if (isSent)
             onProgressUpdate();
@@ -62,10 +52,12 @@ abstract class SmartAsyncTask<Params, ProgressK, ProgressV, Result>
 
     protected void onProgressUpdate() {
         mStartTime = SystemClock.elapsedRealtime();
-        onProgressUpdate(mValues);
-        mValues.clear();
+        if (!mValues.isEmpty()) {
+            onProgressUpdate(mValues);
+            mValues.clear();
+        }
     }
 
-    protected void onProgressUpdate(Map<ProgressK, List<ProgressV>> values) {
+    protected void onProgressUpdate(Collection<Progress> values) {
     }
 }

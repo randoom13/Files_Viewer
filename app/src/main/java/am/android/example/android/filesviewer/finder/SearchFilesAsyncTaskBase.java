@@ -3,13 +3,13 @@ package am.android.example.android.filesviewer.finder;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 
 import am.android.example.android.filesviewer.finder.validation.TextPainter;
 import am.android.example.android.filesviewer.finder.validation.Validatable;
 
-
-class SearchFilesAsyncTaskBase extends SmartAsyncTask<File, File, SearchedItemInfo, Void> {
+class SearchFilesAsyncTaskBase extends SmartAsyncTask<File, SearchedRootInfo, Void> {
     private final Validatable<File, TextPainter> mValidator;
     private final String mSearchFilter;
 
@@ -17,6 +17,30 @@ class SearchFilesAsyncTaskBase extends SmartAsyncTask<File, File, SearchedItemIn
         super();
         mValidator = validator;
         mSearchFilter = searchFilter;
+    }
+
+    @Override
+    protected void addValue(SearchedRootInfo newRootInfo) {
+        boolean handled = false;
+        for (SearchedRootInfo rootInfo : mValues) {
+            if (rootInfo.isSameRoot(newRootInfo)) {
+                rootInfo.addAllFrom(newRootInfo);
+                handled = true;
+                break;
+            }
+        }
+
+        if (!handled)
+            mValues.add(newRootInfo);
+    }
+
+    @Override
+    protected int ValuesSize() {
+        int size = 0;
+        for (SearchedRootInfo rootInfo : mValues) {
+            size += rootInfo.size();
+        }
+        return size;
     }
 
     private void scan(File root) {
@@ -29,7 +53,8 @@ class SearchFilesAsyncTaskBase extends SmartAsyncTask<File, File, SearchedItemIn
 
             TextPainter textPainter = mValidator.isValid(file, mSearchFilter);
             if (textPainter != null) {
-                sentProgressUpdate(false, root, new SearchedItemInfo(file, textPainter));
+                SearchedRootInfo rootInfo = new SearchedRootInfo(root, new SearchedItemInfo(file, textPainter));
+                sentProgressUpdate(false, rootInfo);
             }
 
             if (isCancelled())
@@ -38,16 +63,14 @@ class SearchFilesAsyncTaskBase extends SmartAsyncTask<File, File, SearchedItemIn
             if (!file.isDirectory())
                 continue;
 
-
             File[] dirFiles = file.listFiles();
             if (dirFiles == null)
                 continue;
-
+            Collection<File> dirFilesCollection = Arrays.asList(dirFiles);
             if (files.size() > 0)
-                files.addAll(0, Arrays.asList(dirFiles));
+                files.addAll(0, dirFilesCollection);
             else
-                files.addAll(Arrays.asList(dirFiles));
-
+                files.addAll(dirFilesCollection);
         }
     }
 
@@ -60,6 +83,8 @@ class SearchFilesAsyncTaskBase extends SmartAsyncTask<File, File, SearchedItemIn
         for (File root : roots) {
             scan(root);
         }
+        if (!isCancelled())
+            this.onProgressUpdate();
         return null;
     }
 }
