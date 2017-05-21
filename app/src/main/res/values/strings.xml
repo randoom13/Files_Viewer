@@ -6,4 +6,6 @@
     <string name="internal">Internal</string>
     <string name="external">External</string>
     <string name="root">Root</string>
+    <string formatted="false" name="header_format">%s (%d)</string>
+    <string name="search_completed">Search is completed.</string>
 </resources>
