@@ -5,9 +5,8 @@ import android.os.AsyncTask;
 import android.os.Build;
 
 import java.io.File;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.ArrayList;
+import java.util.Collection;
 
 import am.android.example.android.filesviewer.finder.validation.TextColorProvider;
 import am.android.example.android.filesviewer.finder.validation.TextPainter;
@@ -17,13 +16,14 @@ import de.greenrobot.event.EventBus;
 public class FilesFinder {
     private final Validatable<File, TextPainter> mValidator;
     private final TextColorProvider mTextColorProvider;
-    private final File[] mRoots;
     private SearchFilesAsyncTask mSearchFilesAsyncTask;
+    private File[] mRoots;
 
-    public FilesFinder(File[] roots, Validatable<File, TextPainter> validator, TextColorProvider textColorProvider) {
+    public FilesFinder(Collection<File> roots, Validatable<File, TextPainter> validator, TextColorProvider textColorProvider) {
         mValidator = validator;
         mTextColorProvider = textColorProvider;
-        mRoots = roots;
+        mRoots = new File[roots.size()];
+        roots.toArray(mRoots);
     }
 
     @TargetApi(Build.VERSION_CODES.HONEYCOMB)
@@ -33,18 +33,6 @@ public class FilesFinder {
         } else {
             task.execute(params);
         }
-    }
-
-    public void reset(String searchFilter) {
-        stop();
-        launch(searchFilter);
-    }
-
-    public void launch(String searchFilter) {
-        mSearchFilesAsyncTask = new SearchFilesAsyncTask(mValidator, searchFilter);
-        SearchResultEvent event = new SearchResultEvent(SearchProcessStatus.BEGINNING);
-        EventBus.getDefault().post(event);
-        executeAsyncTask(mSearchFilesAsyncTask, mRoots);
     }
 
     public String getFilter() {
@@ -59,16 +47,28 @@ public class FilesFinder {
             mSearchFilesAsyncTask.cancel(false);
     }
 
-    private void sentNotification(SearchFilesAsyncTask asyncTask,
-                                  Map<File, List<SearchedItemInfo>> values, boolean isCompleted) {
-        if (asyncTask != mSearchFilesAsyncTask || asyncTask.isCancelled())
+    public void reset(String searchFilter) {
+        stop();
+        launch(searchFilter);
+    }
+
+    public void launch(String searchFilter) {
+        mSearchFilesAsyncTask = new SearchFilesAsyncTask(mValidator, searchFilter);
+        SearchResultEvent event = new SearchResultEvent(ProcessStatus.PENDING);
+        EventBus.getDefault().post(event);
+        executeAsyncTask(mSearchFilesAsyncTask, mRoots);
+    }
+
+    private void sentNotification(SearchFilesAsyncTask sender,
+                                  Collection<SearchedRootInfo> values, boolean isFinished) {
+        if (sender != mSearchFilesAsyncTask || sender.isCancelled())
             return;
 
-        SearchResultEvent event = isCompleted ?
-                new SearchResultEvent(SearchProcessStatus.COMPLETED) :
-                new SearchResultEvent(SearchProcessStatus.RUNNING, values);
-        event.setSearchFilter(asyncTask.getSearchFilter());
-        event.colorSearchedItemInfos(mTextColorProvider);
+        SearchResultEvent event = isFinished ?
+                new SearchResultEvent(ProcessStatus.FINISHED) :
+                new SearchResultEvent(ProcessStatus.RUNNING, values);
+        event.setSearchFilter(sender.getSearchFilter());
+        event.colorText(mTextColorProvider);
         EventBus.getDefault().post(event);
     }
 
@@ -78,17 +78,15 @@ public class FilesFinder {
         }
 
         @Override
-        protected Void doInBackground(File... params) {
-            super.doInBackground(params);
+        protected Void doInBackground(File... roots) {
+            super.doInBackground(roots);
             if (!isCancelled())
-                sentNotification(SearchFilesAsyncTask.this,
-                        new HashMap<File, List<SearchedItemInfo>>(), true);
+                sentNotification(SearchFilesAsyncTask.this, new ArrayList<SearchedRootInfo>(), true);
             return null;
         }
 
         @Override
-
-        protected void onProgressUpdate(Map<File, List<SearchedItemInfo>> values) {
+        protected void onProgressUpdate(Collection<SearchedRootInfo> values) {
             sentNotification(SearchFilesAsyncTask.this, values, false);
         }
     }
