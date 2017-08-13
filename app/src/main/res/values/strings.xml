@@ -1,6 +1,5 @@
 <resources>
     <string name="app_name">FilesViewer</string>
-    <string name="label_name">filter:</string>
     <string name="no_files">NO FILES!</string>
     <string name="pub">Public</string>
     <string name="internal">Internal</string>
@@ -8,4 +7,9 @@
     <string name="root">Root</string>
     <string formatted="false" name="header_format">%s (%d)</string>
     <string name="search_completed">Search is completed.</string>
+    <string name="ic_folder">&#xe09d;</string>
+    <string name="ic_drive_file">&#xe077;</string>
+    <string name="ic_drive_document">&#xe074;</string>
+    <string name="ic_keyboard_arrow_down">&#xe0c5;</string>
+    <string name="ic_keyboard_arrow_right">&#xe0c7;</string>
 </resources>

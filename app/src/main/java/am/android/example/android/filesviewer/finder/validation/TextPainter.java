@@ -6,7 +6,7 @@ import android.text.Spanned;
 import android.text.TextUtils;
 import android.text.style.BackgroundColorSpan;
 
-import java.util.List;
+import java.util.Set;
 
 public class TextPainter {
     private final String[] mFilters;
@@ -15,7 +15,7 @@ public class TextPainter {
         mFilters = new String[0];
     }
 
-    public TextPainter(List<String> filters) {
+    public TextPainter(Set<String> filters) {
         mFilters = new String[filters.size()];
         filters.toArray(mFilters);
     }
@@ -33,9 +33,10 @@ public class TextPainter {
         for (String filter : mFilters) {
             int index = TextUtils.indexOf(colorString, filter);
             while (index >= 0) {
+                int length = index + filter.length();
                 colorString.setSpan(new BackgroundColorSpan(provider.getBackgroundColor(paintingString, filter)),
-                        index, index + filter.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-                index = TextUtils.indexOf(colorString, filter, index + filter.length());
+                        index, length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                index = TextUtils.indexOf(colorString, filter, length);
             }
         }
         return colorString;

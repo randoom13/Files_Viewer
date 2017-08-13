@@ -10,16 +10,16 @@ import java.util.Collection;
 
 import am.android.example.android.filesviewer.finder.validation.TextColorProvider;
 import am.android.example.android.filesviewer.finder.validation.TextPainter;
-import am.android.example.android.filesviewer.finder.validation.Validatable;
+import am.android.example.android.filesviewer.finder.validation.Validateable;
 import de.greenrobot.event.EventBus;
 
 public class FilesFinder {
-    private final Validatable<File, TextPainter> mValidator;
+    private final Validateable<File, TextPainter> mValidator;
     private final TextColorProvider mTextColorProvider;
     private SearchFilesAsyncTask mSearchFilesAsyncTask;
     private File[] mRoots;
 
-    public FilesFinder(Collection<File> roots, Validatable<File, TextPainter> validator, TextColorProvider textColorProvider) {
+    public FilesFinder(Collection<File> roots, Validateable<File, TextPainter> validator, TextColorProvider textColorProvider) {
         mValidator = validator;
         mTextColorProvider = textColorProvider;
         mRoots = new File[roots.size()];
@@ -73,7 +73,7 @@ public class FilesFinder {
     }
 
     class SearchFilesAsyncTask extends SearchFilesAsyncTaskBase {
-        public SearchFilesAsyncTask(Validatable<File, TextPainter> validator, String searchFilter) {
+        public SearchFilesAsyncTask(Validateable<File, TextPainter> validator, String searchFilter) {
             super(validator, searchFilter);
         }
 

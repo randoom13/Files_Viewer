@@ -7,13 +7,13 @@ import java.util.Collection;
 import java.util.List;
 
 import am.android.example.android.filesviewer.finder.validation.TextPainter;
-import am.android.example.android.filesviewer.finder.validation.Validatable;
+import am.android.example.android.filesviewer.finder.validation.Validateable;
 
 class SearchFilesAsyncTaskBase extends SmartAsyncTask<File, SearchedRootInfo, Void> {
-    private final Validatable<File, TextPainter> mValidator;
+    private final Validateable<File, TextPainter> mValidator;
     private final String mSearchFilter;
 
-    public SearchFilesAsyncTaskBase(Validatable<File, TextPainter> validator, String searchFilter) {
+    public SearchFilesAsyncTaskBase(Validateable<File, TextPainter> validator, String searchFilter) {
         super();
         mValidator = validator;
         mSearchFilter = searchFilter;

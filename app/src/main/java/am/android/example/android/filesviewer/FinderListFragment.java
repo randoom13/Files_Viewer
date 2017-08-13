@@ -1,20 +1,17 @@
 package am.android.example.android.filesviewer;
 
-import android.app.Activity;
 import android.app.ListFragment;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
-import android.view.KeyEvent;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.inputmethod.InputMethodManager;
 import android.widget.BaseAdapter;
-import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ProgressBar;
-import android.widget.TextView;
 import android.widget.Toast;
 
 import java.io.File;
@@ -32,8 +29,7 @@ import am.android.example.android.filesviewer.finder.validation.FilesValidator;
 import am.android.example.android.filesviewer.finder.validation.TextColorProvider;
 import de.greenrobot.event.EventBus;
 
-public class FinderListFragment extends ListFragment
-        implements TextView.OnEditorActionListener {
+public class FinderListFragment extends ListFragment implements TextWatcher {
     private static final String sActualFilter = "actual filter";
     private static final String sTypedFilter = "typed filter";
     private static final int[] sRowTitles = {R.string.root, R.string.internal, R.string.external, R.string.pub};
@@ -48,6 +44,7 @@ public class FinderListFragment extends ListFragment
     private String mActualFilter;
 
     //region private methods
+
     private static String getSavedString(Bundle savedInstanceState, String key) {
         return savedInstanceState == null ? "" :
                 savedInstanceState.getString(key, "");
@@ -68,14 +65,6 @@ public class FinderListFragment extends ListFragment
             if (root != null)
                 mRootsMap.put(root, sRowTitles[index]);
         }
-    }
-
-    private int getRootInfoListSize() {
-        int size = 0;
-        for (SearchedRootInfo rootInfo : mRootInfoList) {
-            size += rootInfo.size();
-        }
-        return size;
     }
 
     private void clearRootInfoList() {
@@ -101,15 +90,11 @@ public class FinderListFragment extends ListFragment
         }
     }
 
-    private String getHeaderTitle(SearchedRootInfo rootInfo) {
-        int titleIdResource = mRootsMap.get(rootInfo.getRoot());
-        return String.format(getString(R.string.header_format),
-                getString(titleIdResource), rootInfo.size());
-    }
 
     //endregion private methods
 
     //region public methods
+
     @Override
     public void onResume() {
         super.onResume();
@@ -129,9 +114,9 @@ public class FinderListFragment extends ListFragment
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setRetainInstance(true);
-        mAdapter = new FilesViewerAdapter();
         initializeRoots();
         initializeRootInfoList();
+        mAdapter = new FilesViewerAdapter(getActivity().getLayoutInflater(), mRootInfoList, mRootsMap);
         final int paintedBackgroundColor = getResources().getColor(R.color.paintedBackground);
         mFilesFinder = new FilesFinder(mRootsMap.keySet(), new FilesValidator(),
                 new TextColorProvider() {
@@ -143,39 +128,35 @@ public class FinderListFragment extends ListFragment
         EventBus.getDefault().register(this);
     }
 
+    //region TextWatcher implementation
+
+    @Override
+    public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+
+    }
+
+    @Override
+    public void onTextChanged(CharSequence s, int start, int before, int count) {
+        mFilesFinder.reset(mSearchFilter.getText().toString());
+    }
+
+    @Override
+    public void afterTextChanged(Editable s) {
+
+    }
+
+    //endregion TextWatcher implementation
+
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         View rootView = inflater.inflate(R.layout.listfragment_finder, container, false);
         mProgressBar = (ProgressBar) rootView.findViewById(R.id.progressBar);
         mSearchFilter = (EditText) rootView.findViewById(R.id.search_filter);
-        mSearchFilter.setOnEditorActionListener(this);
-        Button searchButton = (Button) rootView.findViewById(R.id.search_button);
-        searchButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                launchSearch();
-            }
-        });
+        mSearchFilter.addTextChangedListener(this);
         setListAdapter(mAdapter);
         mTypedFilter = getSavedString(savedInstanceState, sTypedFilter);
         mActualFilter = getSavedString(savedInstanceState, sActualFilter);
         return rootView;
-    }
-
-    @Override
-    public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
-        if (event == null || event.getAction() == KeyEvent.ACTION_UP) {
-            launchSearch();
-        }
-        return true;
-    }
-
-
-    private void launchSearch() {
-        InputMethodManager inputMethodManager = (InputMethodManager)
-                getActivity().getSystemService(Activity.INPUT_METHOD_SERVICE);
-        inputMethodManager.hideSoftInputFromWindow(mSearchFilter.getWindowToken(), 0);
-        mFilesFinder.reset(mSearchFilter.getText().toString());
     }
 
     @SuppressWarnings("unused")
@@ -206,38 +187,55 @@ public class FinderListFragment extends ListFragment
 
     //endregion public methods
 
-    private class FilesViewerAdapter extends BaseAdapter {
-        private View getHeaderView(int position, View convertView, ViewGroup parent) {
-            View row = convertView;
-            if (row == null)
-                row = getActivity().getLayoutInflater().inflate(R.layout.header, parent, false);
-            SearchedRootInfo rootInfo = (SearchedRootInfo) getItem(position);
-            TextView textView = (TextView) row.findViewById(android.R.id.text1);
-            textView.setText(getHeaderTitle(rootInfo));
-            return row;
+    private static class FilesViewerAdapter extends BaseAdapter implements View.OnClickListener {
+        private final List<SearchedRootInfo> mRootInfoList;
+        private final LayoutInflater mInflater;
+        private final Map<File, Integer> mRootsMap;
+
+        public FilesViewerAdapter(LayoutInflater inflater, List<SearchedRootInfo> rootInfoList, Map<File, Integer> rootsMap) {
+            super();
+            mInflater = inflater;
+            mRootInfoList = rootInfoList;
+            mRootsMap = rootsMap;
+        }
+
+        @Override
+        public void onClick(View v) {
+            ViewHolder holder = (ViewHolder) v.getTag();
+            if (null == holder || !holder.isHeader)
+                return;
+
+            SearchedRootInfo rootInfo = mRootInfoList.get(holder.getHeaderPosition());
+            rootInfo.setExpanded(!rootInfo.isExpanded());
+            notifyDataSetChanged();
         }
 
         @Override
         public View getView(int position, View convertView, ViewGroup parent) {
-            if (getItemViewType(position) == 0)
-                return getHeaderView(position, convertView, parent);
-
+            boolean isHeader = getItemViewType(position) == 0;
             View row = convertView;
-            if (row == null)
-                row = getActivity().getLayoutInflater()
-                        .inflate(R.layout.row, parent, false);
+            if (row == null) {
+                int rowId = isHeader ? R.layout.header : R.layout.row;
+                row = mInflater.inflate(rowId, parent, false);
+            }
 
             ViewHolder holder = (ViewHolder) row.getTag();
-            if (holder == null) {
-                holder = new ViewHolder(row);
+            if (null == holder) {
+                holder = new ViewHolder(row, isHeader);
                 row.setTag(holder);
             }
 
-            SearchedItemInfo itemInfo = (SearchedItemInfo) getItem(position);
-            int iconResourceId = itemInfo.getIsDir() ? android.R.drawable.arrow_down_float :
-                    android.R.drawable.star_on;
-            holder.getIcon().setImageResource(iconResourceId);
-            holder.getText().setText(itemInfo.getText());
+            if (isHeader) {
+                SearchedRootInfo rootInfo = (SearchedRootInfo) getItem(position);
+                int titleIdResource = mRootsMap.get(rootInfo.getRoot());
+                holder.bind(rootInfo, titleIdResource);
+                holder.setHeaderPosition(mRootInfoList.indexOf(rootInfo));
+                if (rootInfo.size() > 0)
+                    row.setOnClickListener(this);
+            } else {
+                SearchedItemInfo itemInfo = (SearchedItemInfo) getItem(position);
+                holder.bind(itemInfo);
+            }
             return row;
         }
 
@@ -248,7 +246,12 @@ public class FinderListFragment extends ListFragment
 
         @Override
         public int getCount() {
-            return mRootInfoList.size() + getRootInfoListSize();
+            int size = mRootInfoList.size();
+            for (SearchedRootInfo rootInfo : mRootInfoList) {
+                if (rootInfo.isExpanded())
+                    size += rootInfo.size();
+            }
+            return size;
         }
 
         @Override
@@ -259,6 +262,9 @@ public class FinderListFragment extends ListFragment
                     return rootInfo;
 
                 offset--;
+
+                if (!rootInfo.isExpanded())
+                    continue;
 
                 int size = rootInfo.size();
                 if (size > offset)
