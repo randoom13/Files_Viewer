@@ -43,4 +43,8 @@ public class SearchResultEvent {
     void setSearchFilter(String mSearchFilter) {
         this.mSearchFilter = mSearchFilter;
     }
+
+    public enum ProcessStatus {
+        PENDING, RUNNING, FINISHED
+    }
 }

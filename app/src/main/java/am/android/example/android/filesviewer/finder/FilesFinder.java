@@ -5,7 +5,6 @@ import android.os.AsyncTask;
 import android.os.Build;
 
 import java.io.File;
-import java.util.ArrayList;
 import java.util.Collection;
 
 import am.android.example.android.filesviewer.finder.validation.TextColorProvider;
@@ -13,7 +12,7 @@ import am.android.example.android.filesviewer.finder.validation.TextPainter;
 import am.android.example.android.filesviewer.finder.validation.Validateable;
 import de.greenrobot.event.EventBus;
 
-public class FilesFinder {
+public class FilesFinder implements SearchFilesAsyncTask.Notificapable {
     private final Validateable<File, TextPainter> mValidator;
     private final TextColorProvider mTextColorProvider;
     private SearchFilesAsyncTask mSearchFilesAsyncTask;
@@ -43,8 +42,10 @@ public class FilesFinder {
     }
 
     public void stop() {
-        if (mSearchFilesAsyncTask != null)
+        if (mSearchFilesAsyncTask != null) {
             mSearchFilesAsyncTask.cancel(false);
+            mSearchFilesAsyncTask.unsubscribeNotification();
+        }
     }
 
     public void reset(String searchFilter) {
@@ -54,40 +55,23 @@ public class FilesFinder {
 
     public void launch(String searchFilter) {
         mSearchFilesAsyncTask = new SearchFilesAsyncTask(mValidator, searchFilter);
-        SearchResultEvent event = new SearchResultEvent(ProcessStatus.PENDING);
+        mSearchFilesAsyncTask.setNotification(this);
+        SearchResultEvent event = new SearchResultEvent(SearchResultEvent.ProcessStatus.PENDING);
         EventBus.getDefault().post(event);
         executeAsyncTask(mSearchFilesAsyncTask, mRoots);
     }
 
-    private void sentNotification(SearchFilesAsyncTask sender,
-                                  Collection<SearchedRootInfo> values, boolean isFinished) {
+    @Override
+    public void sentNotification(SearchFilesAsyncTask sender,
+                                 Collection<SearchedRootInfo> values, boolean isFinished) {
         if (sender != mSearchFilesAsyncTask || sender.isCancelled())
             return;
 
         SearchResultEvent event = isFinished ?
-                new SearchResultEvent(ProcessStatus.FINISHED) :
-                new SearchResultEvent(ProcessStatus.RUNNING, values);
+                new SearchResultEvent(SearchResultEvent.ProcessStatus.FINISHED) :
+                new SearchResultEvent(SearchResultEvent.ProcessStatus.RUNNING, values);
         event.setSearchFilter(sender.getSearchFilter());
         event.colorText(mTextColorProvider);
         EventBus.getDefault().post(event);
-    }
-
-    class SearchFilesAsyncTask extends SearchFilesAsyncTaskBase {
-        public SearchFilesAsyncTask(Validateable<File, TextPainter> validator, String searchFilter) {
-            super(validator, searchFilter);
-        }
-
-        @Override
-        protected Void doInBackground(File... roots) {
-            super.doInBackground(roots);
-            if (!isCancelled())
-                sentNotification(SearchFilesAsyncTask.this, new ArrayList<SearchedRootInfo>(), true);
-            return null;
-        }
-
-        @Override
-        protected void onProgressUpdate(Collection<SearchedRootInfo> values) {
-            sentNotification(SearchFilesAsyncTask.this, values, false);
-        }
     }
 }

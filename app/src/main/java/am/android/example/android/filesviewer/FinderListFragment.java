@@ -12,7 +12,6 @@ import android.view.ViewGroup;
 import android.widget.BaseAdapter;
 import android.widget.EditText;
 import android.widget.ProgressBar;
-import android.widget.Toast;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -170,9 +169,6 @@ public class FinderListFragment extends ListFragment implements TextWatcher {
             case FINISHED:
                 if (mProgressBar != null)
                     mProgressBar.setVisibility(View.INVISIBLE);
-                Toast toast = Toast.makeText(this.getActivity(),
-                        R.string.search_completed, Toast.LENGTH_SHORT);
-                toast.show();
                 break;
 
             case RUNNING:

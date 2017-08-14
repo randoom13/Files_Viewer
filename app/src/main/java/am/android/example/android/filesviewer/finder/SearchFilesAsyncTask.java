@@ -9,14 +9,29 @@ import java.util.List;
 import am.android.example.android.filesviewer.finder.validation.TextPainter;
 import am.android.example.android.filesviewer.finder.validation.Validateable;
 
-class SearchFilesAsyncTaskBase extends SmartAsyncTask<File, SearchedRootInfo, Void> {
+class SearchFilesAsyncTask extends SmartAsyncTask<File, SearchedRootInfo, Void> {
     private final Validateable<File, TextPainter> mValidator;
     private final String mSearchFilter;
+    private Notificapable mNotificapable;
 
-    public SearchFilesAsyncTaskBase(Validateable<File, TextPainter> validator, String searchFilter) {
+    public SearchFilesAsyncTask(Validateable<File, TextPainter> validator, String searchFilter) {
         super();
         mValidator = validator;
         mSearchFilter = searchFilter;
+    }
+
+    public void setNotification(Notificapable notificapable) {
+        mNotificapable = notificapable;
+    }
+
+    public void unsubscribeNotification() {
+        mNotificapable = null;
+    }
+
+    @Override
+    protected void onProgressUpdate(Collection<SearchedRootInfo> values) {
+        if (null != mNotificapable)
+            mNotificapable.sentNotification(this, values, false);
     }
 
     @Override
@@ -85,6 +100,14 @@ class SearchFilesAsyncTaskBase extends SmartAsyncTask<File, SearchedRootInfo, Vo
         }
         if (!isCancelled())
             this.onProgressUpdate();
+
+        if (!isCancelled() && null != mNotificapable)
+            mNotificapable.sentNotification(this, new ArrayList<SearchedRootInfo>(), true);
         return null;
+    }
+
+    public interface Notificapable {
+        void sentNotification(SearchFilesAsyncTask sender,
+                              Collection<SearchedRootInfo> values, boolean isFinished);
     }
 }
