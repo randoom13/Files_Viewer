@@ -56,7 +56,7 @@ public class FilesFinder implements SearchFilesAsyncTask.Notificapable {
     public void launch(String searchFilter) {
         mSearchFilesAsyncTask = new SearchFilesAsyncTask(mValidator, searchFilter);
         mSearchFilesAsyncTask.setNotification(this);
-        SearchResultEvent event = new SearchResultEvent(SearchResultEvent.ProcessStatus.PENDING);
+        SearchResultEvent event = new SearchResultEvent(SearchResultEvent.PENDING_PROCESS_STATUS);
         EventBus.getDefault().post(event);
         executeAsyncTask(mSearchFilesAsyncTask, mRoots);
     }
@@ -68,8 +68,8 @@ public class FilesFinder implements SearchFilesAsyncTask.Notificapable {
             return;
 
         SearchResultEvent event = isFinished ?
-                new SearchResultEvent(SearchResultEvent.ProcessStatus.FINISHED) :
-                new SearchResultEvent(SearchResultEvent.ProcessStatus.RUNNING, values);
+                new SearchResultEvent(SearchResultEvent.FINISHED_PROCESS_STATUS) :
+                new SearchResultEvent(SearchResultEvent.RUNNING_PROCESS_STATUS, values);
         event.setSearchFilter(sender.getSearchFilter());
         event.colorText(mTextColorProvider);
         EventBus.getDefault().post(event);

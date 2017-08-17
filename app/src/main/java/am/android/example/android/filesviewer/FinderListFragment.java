@@ -161,17 +161,17 @@ public class FinderListFragment extends ListFragment implements TextWatcher {
     @SuppressWarnings("unused")
     public void onEventMainThread(SearchResultEvent event) {
         switch (event.getStatus()) {
-            case PENDING:
+            case SearchResultEvent.PENDING_PROCESS_STATUS:
                 clearRootInfoList();
                 mAdapter.notifyDataSetChanged();
                 break;
 
-            case FINISHED:
+            case SearchResultEvent.FINISHED_PROCESS_STATUS:
                 if (mProgressBar != null)
                     mProgressBar.setVisibility(View.INVISIBLE);
                 break;
 
-            case RUNNING:
+            case SearchResultEvent.RUNNING_PROCESS_STATUS:
                 if (mProgressBar != null && mProgressBar.getVisibility() != View.VISIBLE) {
                     mProgressBar.setVisibility(View.VISIBLE);
                 }

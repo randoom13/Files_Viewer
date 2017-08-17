@@ -8,15 +8,18 @@ import am.android.example.android.filesviewer.finder.validation.TextColorProvide
 
 
 public class SearchResultEvent {
-    private final ProcessStatus mProcessStatus;
+    public static final int PENDING_PROCESS_STATUS = 0;
+    public static final int RUNNING_PROCESS_STATUS = 1;
+    public static final int FINISHED_PROCESS_STATUS = 2;
+    private final int mProcessStatus;
     private final List<SearchedRootInfo> mSearchedRootInfoList;
     private String mSearchFilter;
 
-    public SearchResultEvent(ProcessStatus operation) {
-        this(operation, new ArrayList<SearchedRootInfo>());
+    public SearchResultEvent(int processStatus) {
+        this(processStatus, new ArrayList<SearchedRootInfo>());
     }
 
-    public SearchResultEvent(ProcessStatus processStatus,
+    public SearchResultEvent(int processStatus,
                              Collection<SearchedRootInfo> values) {
         mProcessStatus = processStatus;
         mSearchedRootInfoList = new ArrayList<SearchedRootInfo>(values);
@@ -32,7 +35,7 @@ public class SearchResultEvent {
         return mSearchedRootInfoList;
     }
 
-    public ProcessStatus getStatus() {
+    public int getStatus() {
         return mProcessStatus;
     }
 
@@ -44,7 +47,4 @@ public class SearchResultEvent {
         this.mSearchFilter = mSearchFilter;
     }
 
-    public enum ProcessStatus {
-        PENDING, RUNNING, FINISHED
-    }
 }
