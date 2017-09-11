@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">FilesViewer</string>
+    <string name="app_name">Files Viewer</string>
     <string name="no_files">NO FILES!</string>
     <string name="pub">Public</string>
     <string name="internal">Internal</string>
