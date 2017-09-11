@@ -15,8 +15,8 @@ class ViewHolder {
     public final TextView text;
     public final boolean isHeader;
     public final PrintView expandedIcon;
-    private int mHeaderPosition;
     private final View mRow;
+    private int mHeaderPosition;
 
     ViewHolder(View row, boolean isHeader) {
         this.isHeader = isHeader;
@@ -52,7 +52,7 @@ class ViewHolder {
         int expandedIconId = rootInfo.isExpanded() ? R.string.ic_keyboard_arrow_down :
                 R.string.ic_keyboard_arrow_right;
         expandedIcon.setIconText(resources.getString(expandedIconId));
-        int visibility = rootInfo.size() == 0? View.INVISIBLE : View.VISIBLE;
+        int visibility = rootInfo.size() == 0 ? View.INVISIBLE : View.VISIBLE;
         expandedIcon.setVisibility(visibility);
         title = String.format(resources.getString(R.string.header_format),
                 resources.getString(titleIdResource), rootInfo.size());
